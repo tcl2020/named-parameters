@@ -1,0 +1,343 @@
+
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+	package require tcltest 2
+	namespace import -force ::tcltest::*
+}
+
+if {![info exists ::env(NATIVE_NP)] && [lsearch [namespace children] ::np] == -1} {
+    source [file dirname [file normalize [info script]]]/../np.tcl
+} else {
+    namespace eval np {}
+    proc np::proc {args} {uplevel [list proc {*}$args]}
+}
+
+test np-1.0 "non-named parameters, no arguments" -setup {
+	np::proc a {} {
+	}
+} -body {
+	a
+} -returnCodes ok -result ""
+
+test np-1.1 "non-named parameters, too many arguments" -setup {
+	np::proc a {} {
+	}
+} -body {
+	a b
+} -returnCodes error -result {wrong # args: should be "a"}
+
+test np-1.2 "non-named parameters, two arguments" -setup {
+	np::proc b {a b} {
+		return "$a $b"
+	}
+} -body {
+	b 1 2
+} -result "1 2"
+
+
+test np-2.0 "named parameters, no arguments" -body {
+	np::proc c {--} {
+	}
+} -returnCodes error -result "-- cannot be the first argument for named parameters. Use positional parameters."
+
+test np-2.1 "named parameters with no arguments, too many arguments" -body {
+	np::proc c {-- a} {
+	}
+} -returnCodes error -result "-- cannot be the first argument for named parameters. Use positional parameters."
+
+
+test np-2.2 "named parameters, one required named argument" -setup {
+	np::proc t {a --} {
+		return $a
+	}
+} -body {
+	t -a 5
+} -result "5"
+
+test np-2.3 "named parameters, one missing required named argument" -setup {
+	np::proc t {a --} {
+		return $a
+	}
+} -body {
+	t
+} -returnCodes error -result {wrong # args: should be "t -a val ?--?"}
+
+test np-2.5 "named parameters, one extra positional argument" -setup {
+	np::proc t {a --} {
+		return $a
+	}
+} -body {
+	t -a 5 z
+} -returnCodes error -result {wrong # args: should be "t -a val ?--?"}
+
+test np-2.6 "named parameters, one extra positional argument" -setup {
+	np::proc t {a --} {
+		return $a
+	}
+} -body {
+	t z
+} -returnCodes error -result {wrong # args: should be "t -a val ?--?"}
+
+test np-3.0 "named parameters, one optional named argument and value not specified" -setup {
+	np::proc t {{a defa} --} {
+		return $a
+	}
+} -body {
+	t
+} -result defa
+
+test np-3.1 "named parameters, one optional named argument and value specified" -setup {
+	np::proc t {{a defa} --} {
+		return $a
+	}
+} -body {
+	t -a alta
+} -result alta
+
+test np-3.2 "named parameters, one optional named argument with value specified and trailing --" -setup {
+	np::proc t {{a defa} --} {
+		return $a
+	}
+} -body {
+	t -a alta --
+} -result alta
+
+test np-3.3 "named parameters, one bogus named argument" -setup {
+	np::proc t {{a defa} --} {
+		return $a
+	}
+} -body {
+	t -b altb
+} -returnCodes error -result {wrong # args: should be "t ?-a val? ?--?"}
+
+
+test np-4.0 "two named parameters" -setup {
+	np::proc t {{a defa} {b defb} --} {
+		return "$a $b"
+	}
+} -body {
+	t -a alta -b altb
+} -result "alta altb"
+
+test np-4.1 "two named parameters, reversed" -setup {
+	np::proc t {{a defa} {b defb} --} {
+		return "$a $b"
+	}
+} -body {
+	t -b altb -a alta
+} -result "alta altb"
+
+test np-4.2 "two named parameters, one specified twice" -setup {
+	np::proc t {{a defa} {b defb} --} {
+		return "$a $b"
+	}
+} -body {
+	t -b altb -b altb2
+} -returnCodes error -result {wrong # args: should be "t ?-a val? ?-b val? ?--?"}
+
+test np-4.3 "two named parameters" -setup {
+	np::proc t {a {b defb} --} {
+		return "$a $b"
+	}
+} -body {
+	t -a alta
+} -result "alta defb"
+
+test np-4.4 "two named parameters with trailing double-dash" -setup {
+	np::proc t {a {b defb} --} {
+		return "$a $b"
+	}
+} -body {
+	t -a alta --
+} -result "alta defb"
+
+test np-4.5 "two named parameters with incorrect trailing argument" -setup {
+	np::proc t {a {b defb} --} {
+		return "$a $b"
+	}
+} -body {
+	t -b altb nogood
+} -returnCodes error -result {wrong # args: should be "t -a val ?-b val? ?--?"}
+
+test np-4.6 "two named parameters, required one missing" -setup {
+	np::proc t {a {b defb} --} {
+		return "$a $b"
+	}
+} -body {
+	t -b altb
+} -returnCodes error -result {wrong # args: should be "t -a val ?-b val? ?--?"}
+
+test np-4.7 "two named parameters, required one missing, with missing optional argument" -setup {
+	np::proc t {a {b defb} -- {c defc}} {
+		return "$a $b"
+	}
+} -body {
+	t -b altb
+} -returnCodes error -result {wrong # args: should be "t -a val ?-b val? ?--? ?c?"}
+
+
+test np-5.0 "two named parameters and optional positional parameter not specified" -setup {
+	np::proc t {{a defa} {b defb} -- {c defc}} {
+		return "$a $b $c"
+	}
+} -body {
+	t -a alta -b altb
+} -result "alta altb defc"
+
+test np-5.1 "two named parameters and optional positional parameter not specified, with dashdash" -setup {
+	np::proc t {{a defa} {b defb} -- {c defc}} {
+		return "$a $b $c"
+	}
+} -body {
+	t -a alta -b altb --
+} -result "alta altb defc"
+
+test np-5.2 "two named parameters and optional positional parameter specified" -setup {
+	np::proc t {{a defa} {b defb} -- {c defc}} {
+		return "$a $b $c"
+	}
+} -body {
+	t -a alta -b altb altc
+} -result "alta altb altc"
+
+test np-5.3 "two named parameters and optional positional parameter specified, with dashdash" -setup {
+	np::proc t {{a defa} {b defb} -- {c defc}} {
+		return "$a $b $c"
+	}
+} -body {
+	t -a alta -b altb -- altc
+} -result "alta altb altc"
+
+test np-5.4 "two named parameters and required positional parameter not specified" -setup {
+	np::proc t {{a defa} {b defb} -- c} {
+		return "$a $b $c"
+	}
+} -body {
+	t -a alta -b altb
+} -returnCodes error -result {wrong # args: should be "t ?-a val? ?-b val? ?--? c"}
+
+test np-5.5 "two named parameters and required positional parameter not specified, with dashdash" -setup {
+	np::proc t {{a defa} {b defb} -- c} {
+		return "$a $b $c"
+	}
+} -body {
+	t -a alta -b altb --
+} -returnCodes error -result {wrong # args: should be "t ?-a val? ?-b val? ?--? c"}
+
+test np-5.6 "two named parameters and required positional parameter specified" -setup {
+	np::proc t {{a defa} {b defb} -- c} {
+		return "$a $b $c"
+	}
+} -body {
+	t -a alta -b altb altc
+} -result "alta altb altc"
+
+test np-5.7 "two named parameters and required positional parameter specified, with dashdash" -setup {
+	np::proc t {{a defa} {b defb} -- {c defc}} {
+		return "$a $b $c"
+	}
+} -body {
+	t -a alta -b altb -- altc
+} -result "alta altb altc"
+
+
+test np-6.0 "two named parameters, optional positional parameter not specified, empty and args" -setup {
+	np::proc t {{a defa} {b defb} -- {c defc} args} {
+		return "$a $b $c"
+	}
+} -body {
+	t -a alta -b altb
+} -result "alta altb defc"
+
+test np-6.1 "two named parameters, optional positional specified, and something in args" -setup {
+	np::proc t {{a defa} {b defb} -- {c defc} args} {
+		return [list $a $b $c $args]
+	}
+} -body {
+	t -a alta -b altb altc 1 2 3
+} -result "alta altb altc {1 2 3}"
+
+test np-6.2 "two named parameters and optional positional parameter not specified, with dashdash" -setup {
+	np::proc t {{a defa} {b defb} -- {c defc} args} {
+		return [list $a $b $c $args]
+	}
+} -body {
+	t -a alta -b altb -- altc args1 args2
+} -result "alta altb altc {args1 args2}"
+
+test np-6.3 "two named parameters and optional positional parameter specified, with empty args" -setup {
+	np::proc t {{a defa} {b defb} -- {c defc} args} {
+		return [list $a $b $c $args]
+	}
+} -body {
+	t -a alta -b altb altc
+} -result "alta altb altc {}"
+
+test np-6.4 "two named parameters and optional positional parameter specified, with dashdash and args" -setup {
+	np::proc t {{a defa} {b defb} -- {c defc} args} {
+		return [list $a $b $c $args]
+	}
+} -body {
+	t -a alta -b altb -- altc args1 args2
+} -result "alta altb altc {args1 args2}"
+
+test np-6.5 "two named parameters and required positional parameter not specified, with args" -setup {
+	np::proc t {{a defa} {b defb} -- c args} {
+		return [list $a $b $c $args]
+	}
+} -body {
+	t -a alta -b altb
+} -returnCodes error -result {wrong # args: should be "t ?-a val? ?-b val? ?--? c ?arg ...?"}
+
+test np-6.6 "two named parameters and required positional parameter not specified, with args and dashdash" -setup {
+	np::proc t {{a defa} {b defb} -- c args} {
+		return [list $a $b $c $args]
+	}
+} -body {
+	t -a alta -b altb --
+} -returnCodes error -result {wrong # args: should be "t ?-a val? ?-b val? ?--? c ?arg ...?"}
+
+test np-6.7 "two named parameters and required positional parameter not specified, with another optional positional parameter, args and dashdash" -setup {
+	np::proc t {{a defa} {b defb} -- c {d defd} args} {
+		return [list $a $b $c $args]
+	}
+} -body {
+	t -a alta -b altb --
+} -returnCodes error -result {wrong # args: should be "t ?-a val? ?-b val? ?--? c ?d? ?arg ...?"}
+
+test np-6.8 "two named parameters and required positional parameter specified, with args" -setup {
+	np::proc t {{a defa} {b defb} -- c args} {
+		return [list $a $b $c $args]
+	}
+} -body {
+	t -a alta -b altb altc args1 args2
+} -result "alta altb altc {args1 args2}"
+
+test np-6.9 "two named parameters and required positional parameter specified, with dashdash and args" -setup {
+	np::proc t {{a defa} {b defb} -- {c defc} args} {
+		return [list $a $b $c $args]
+	}
+} -body {
+	t -a alta -b altb -- altc args1 args2
+} -result "alta altb altc {args1 args2}"
+
+test np-7.0 "named parameter in a variable" -setup {
+	np::proc t {a --} {
+		return [list $a]
+	}
+} -body {
+	set n "-a"
+	t $n a
+} -result "a"
+
+test np-7.1 "call named parameters with expando" -setup {
+	np::proc t {a {b defb} -- c args} {
+		return [list $a $b $c $args]
+	}
+} -body {
+	set l {-a a -- c}
+	t {*}$l
+} -result "a defb c {}"
+
+
+cleanupTests
