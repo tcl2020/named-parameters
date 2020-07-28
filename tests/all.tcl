@@ -10,23 +10,28 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
-set ErrorOnFailures 0
-
 package prefer latest
 package require Tcl 8.6-
 package require tcltest 2.3
 namespace import ::tcltest::*
 
-configure {*}$argv -testdir [file dirname [file dirname [file normalize [
-    info script]/...]]]
 
-if {[singleProcess]} {
-    interp debug {} -frame 1
+# Hook to determine if any of the tests failed. Then we can exit with
+# proper exit code: 0=all passed, 1=one or more failed
+proc tcltest::cleanupTestsHook {} {
+        variable numTests
+        set ::exitCode [expr {$numTests(Failed) > 0}]
 }
 
-set ErrorOnFailures [info exists env(ERROR_ON_FAILURES)]
-unset -nocomplain env(ERROR_ON_FAILURES)
+# Allow command line arguments to be passed to the configure command
+# This supports only running a single test or a single test file
+::tcltest::configure {*}$argv
 
-#if {[runAllTests] && $ErrorOnFailures} {exit 1}
-#proc exit args {}
-runAllTests
+::tcltest::runAllTests
+
+if {$exitCode == 1} {
+        puts "====== FAIL ====="
+        exit $exitCode
+} else {
+        puts "====== SUCCESS ====="
+}
