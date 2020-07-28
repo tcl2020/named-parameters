@@ -127,13 +127,13 @@ test np-4.1 "two named parameters, reversed" -setup {
 	t -b altb -a alta
 } -result "alta altb"
 
-# test np-4.2 "two named parameters, one specified twice" -setup {
-# 	np::proc t {{a defa} {b defb} --} {
-# 		return "$a $b"
-# 	}
-# } -body {
-# 	t -b altb -b altb2
-# } -returnCodes error -result {wrong # args: should be "t ?-a val? ?-b val? ?--?"}
+test np-4.2 "two named parameters, one specified twice" -setup {
+	np::proc t {{a defa} {b defb} --} {
+		return "$a $b"
+	}
+} -body {
+	t -b altb -b altb2
+} -returnCodes error -result {wrong # args: should be "t ?-a val? ?-b val? ?--?"}
 
 test np-4.3 "two named parameters" -setup {
 	np::proc t {a {b defb} --} {
