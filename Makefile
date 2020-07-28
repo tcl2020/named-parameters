@@ -1,5 +1,5 @@
 #
-# Makefile for named parameters pacakge
+# Makefile for named parameters package
 #
 
 PREFIX		?= /usr/local
@@ -30,4 +30,4 @@ clean:
 	@rm -f pkgIndex.tcl
 
 test:
-	cd tests; tclsh all.tcl -singleproc true
+	cd tests; $(TCLSH) all.tcl -singleproc true
