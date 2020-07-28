@@ -7,6 +7,9 @@ PREFIX		?= /usr/local
 LIB			?= $(PREFIX)/lib
 TCLSH		?= tclsh
 
+INSTALLUSER = root
+#INSTALLGROUP = wheel
+INSTALLGROUP = root
 
 PACKAGE=np
 TARGET=$(LIB)/$(PACKAGE)
@@ -19,8 +22,8 @@ install: install-package
 
 install-package:
 	echo "pkg_mkIndex ." | $(TCLSH)
-	@install -o root -g wheel -m 0755 -d $(TARGET)
-	@install -o root -g wheel -m 0644 $(FILES) $(TARGET)/
+	install -o $(INSTALLUSER) -g $(INSTALLGROUP) -m 0755 -d $(TARGET)
+	install -o $(INSTALLUSER) -g $(INSTALLGROUP) -m 0644 $(FILES) $(TARGET)/
 	@echo "Installed $(PACKAGE) package to $(LIB)"
 
 clean:
