@@ -61,7 +61,6 @@ namespace eval ::np {
 	#   expected way.
 	#
 	::proc np_handler {argd realArgs} {
-		array set vsets [dict get $argd defaults]
 		set named [dict get $argd named]
 		set positional [dict get $argd positional]
 
@@ -97,8 +96,22 @@ namespace eval ::np {
 
 			# we're good, set the named parameter into the variable sets
 			#puts [list set vsets($var) [lindex $realArgs 1]]
+
+			# but don't allow the same variable to be set twice
+			if {[info exists vsets($var)]} {
+				error [dict get $argd errmsg] "" [list TCL WRONGARGS]
+			}
+
 			set vsets($var) [lindex $realArgs 1]
 			set realArgs [lrange $realArgs 2 end]
+		}
+
+		# fill in defaults for all the vars with defaults that
+		# didn't get set to a value
+		foreach "var value" [dict get $argd defaults] {
+			if {![info exists vsets($var)]} {
+				set vsets($var) $value
+			}
 		}
 
 		foreach var $positional {
