@@ -9,7 +9,8 @@ TCLSH		?= tclsh
 
 INSTALLUSER = root
 #INSTALLGROUP = wheel
-INSTALLGROUP = root
+#INSTALLGROUP = root
+INSTALLGROUP = `groups $(INSTALLUSER) | cut -d' ' -f1`
 
 PACKAGE=np
 TARGET=$(LIB)/$(PACKAGE)
