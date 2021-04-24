@@ -340,4 +340,33 @@ test np-7.1 "call named parameters with expando" -setup {
 } -result "a defb c {}"
 
 
+
+test np-8.0 "regular and adhoc named parameter in a variable" -setup {
+	np::proc t {a --} {
+		return [list $a $kwargs]
+	}
+} -body {
+	set n "-a"
+	set m "=b"
+	t $n a $m b
+} -result "a {b b}"
+
+test np-8.1 "call regular and adhoc named parameters with expando" -setup {
+	np::proc t {a {b defb} -- c args} {
+		return [list $a $b $c $kwargs $args]
+	}
+} -body {
+	set l {=d d -a a -- c}
+	t {*}$l
+} -result "a defb c {d d} {}"
+
+test np-8.2 "call regular and double adhoc named parameters with expando" -setup {
+	np::proc t {a {b defb} -- c args} {
+		return [list $a $b $c $kwargs $args]
+	}
+} -body {
+	set l {=d d -a a =e e -- c}
+	t {*}$l
+} -result "a defb c {d d e e} {}"
+
 cleanupTests

@@ -74,15 +74,16 @@ namespace eval ::np {
 				break
 			}
 
-			# if "var" doesn't start with a dash, flip to positional
-			if {[string index $arg 0] ne "-"} {
-				#puts "possible var '$arg' doesn't start with a dash, flip to positional"
+			# if "var" doesn't start with a dash or equal sign, flip to positional
+			set start_character [string index $arg 0]
+			if {$start_character ne "-" && $start_character ne "="} {
+				#puts "possible var '$arg' doesn't start with a dash or equal sign, flip to positional"
 				break
 			}
 
 			# if "var" isn't known to us as a named parameter, flip to positional
 			set var [string range $arg 1 end]
-			if {[lsearch $named $var] < 0} {
+			if {[lsearch $named $var] < 0 && $start_character ne "="} {
 				#puts "'var' '$arg' not recognized, flip to positional"
 				break
 			}
@@ -97,12 +98,22 @@ namespace eval ::np {
 			# we're good, set the named parameter into the variable sets
 			#puts [list set vsets($var) [lindex $realArgs 1]]
 
-			# but don't allow the same variable to be set twice
-			if {[info exists vsets($var)]} {
+			# but don't allow a valid named parameter to be set as a keyword parameter
+			if {$start_character eq "=" && [lsearch $named $var] >= 0} {
 				error [dict get $argd errmsg] "" [list TCL WRONGARGS]
 			}
 
-			set vsets($var) [lindex $realArgs 1]
+			# but don't allow the same variable to be set twice
+			if {[info exists vsets($var)] || [info exists kwsets($var)]} {
+				error [dict get $argd errmsg] "" [list TCL WRONGARGS]
+			}
+
+			# write to kwsets, if a keword argument was detected
+			if {$start_character eq "="} {
+				set kwsets($var) [lindex $realArgs 1]
+			} else {
+				set vsets($var) [lindex $realArgs 1]
+			}
 			set realArgs [lrange $realArgs 2 end]
 		}
 
@@ -155,6 +166,16 @@ namespace eval ::np {
 			upvar $var myvar
 			set myvar $value
 		}
+
+		# create an empty dict in the caller's frame
+		upvar kwargs kw_args
+		set kw_args [dict create]
+		# now iterate through the var-value pairs and set the dict kwargs
+		# in the caller's frame
+		foreach "var value" [array get kwsets] {
+			#puts "set kw_args $var $value"
+			dict set kw_args $var $value
+		}
 		return
 	}
 
@@ -184,4 +205,4 @@ namespace eval ::np {
 	}
 }
 
-package provide np 1.0.0
+package provide np 1.1.1
